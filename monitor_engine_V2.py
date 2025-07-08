@@ -382,15 +382,10 @@ def process_packet(pkt, flow_results, gui_instance=None, offline_mode=False):
             src_port = pkt[IP].sport if (pkt.haslayer(UDP) or pkt.haslayer(TCP)) else 0
             dst_port = pkt[IP].dport if (pkt.haslayer(UDP) or pkt.haslayer(TCP)) else 0
             # Modified flow_key for offline mode to handle port scans better
-            if offline_mode:
-                flow_key = (src_ip, dst_ip, src_port, dst_port, protocol)
-            else:
-                flow_key = (min(src_ip, dst_ip), max(src_ip, dst_ip), min(src_port, dst_port), max(src_port, dst_port), protocol)
+            flow_key = (src_ip, dst_ip, src_port, dst_port, protocol) if offline_mode else dst_ip
 
             with flows_lock:
                 flow_data = flows[flow_key]
-                if "src_id" not in flow_data:
-                 flow_data["src_id"] = (src_ip, src_port)
                 flow_data["dst_ip"] = dst_ip
                 flow_data["dst_port"] = dst_port
                 flow_data["unique_ports"].add(dst_port)
@@ -424,7 +419,7 @@ def process_packet(pkt, flow_results, gui_instance=None, offline_mode=False):
                     if pkt.haslayer(Raw) and pkt[IP].dst == dst_ip:
                         flow_data["act_data_pkt_fwd"] += 1
 
-                if (src_ip, src_port) == flow_data["src_id"]:
+                if pkt[IP].dst == dst_ip:
                     flow_data["fwd_packets"] += 1
                     flow_data["fwd_bytes"] += len(pkt.payload) if pkt.haslayer(Raw) else 0
                 else:
